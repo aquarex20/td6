@@ -1,7 +1,7 @@
-﻿#pragma once
+#pragma once
 /// Ajout des numéros de ligne au rapport de fuites.
 /// Pour aller avec verification_allocation.cpp .  Doit être inclus dans tous les fichiers qui font des "new".
-/// Malheureusement incompatible avec le "placement new".
+/// Malheureusement incompatible avec le "placement new" et l'appel direct à l'"operator new".
 /// \author Francois-R.Boyer@PolyMtl.ca
 /// \since   2021-01
 

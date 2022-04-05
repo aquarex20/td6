@@ -63,7 +63,7 @@ static void __cdecl initialisation_juste_avant_variables_globales() {
 }
 #define INITIALISATION_JUSTE_AVANT_VARIABLES_GLOBALES ".CRT$XCT"
 #pragma section(INITIALISATION_JUSTE_AVANT_VARIABLES_GLOBALES, long, read)
-__declspec(allocate(INITIALISATION_JUSTE_AVANT_VARIABLES_GLOBALES)) static auto initializer_juste_avant_variables_globales    = &initialisation_juste_avant_variables_globales;
+[[maybe_unused]] __declspec(allocate(INITIALISATION_JUSTE_AVANT_VARIABLES_GLOBALES)) static auto initializer_juste_avant_variables_globales    = &initialisation_juste_avant_variables_globales;
 
 #endif
 
@@ -79,7 +79,7 @@ void ouvrirUneConsoleSiTestAvecDebogueur()
 			SetStdHandle(stdHandle, CreateFileA(nom_fichier, access, share, nullptr, creation, attributs, nullptr));
 			cppStream.clear();
 		};
-		// Noter que ceci fait que l'Exlorateur de tests en mode débogage n'affichera pas la sortie standard "Message" du test, on doit la regarder dans la console.  Il affiche tout de même le résultat avec valeurs espérée.
+		// Noter que ceci fait que l'Exlorateur de tests en mode débogage n'affichera pas la sortie standard "Message" du test, on doit la regarder dans la console.  Il affiche tout de même le résultat avec valeurs_ espérée.
 		reouvrir("CONOUT$", "w", stdout, STD_OUTPUT_HANDLE, std::cout);
 		reouvrir("CONOUT$", "w", stderr, STD_ERROR_HANDLE,  std::cerr);
 		reouvrir("CONIN$",  "r", stdin,  STD_INPUT_HANDLE,  std::cin);
@@ -230,14 +230,17 @@ auto remplaceConsoleOutputCP(UINT codePageId) {
 static const char* to_const_char(const std::string& s) { return s.c_str(); }
 static const char* to_const_char(const char* s) { return s; }
 
-[[nodiscard]]//("Remet l'ancienne valeur immediatément si on ne conserve pas l'objet retourné.")]] // bug de gcc 9.3: error: wrong number of arguments specified for ‘nodiscard’ attribute
+[[nodiscard("Remet l'ancienne valeur immediatément si on ne conserve pas l'objet retourné.")]]
 auto remplaceCLocale(int category, std::span<const char*> locales_a_essayer) {
 	return RemplaceRemet([category](auto locales) {
 		const char* ancien = setlocale(category, nullptr);
 		std::string ancienStr = ancien ? ancien : "C";  // Attention, le standard dit que le pointeur retourné par setlocale peut être invalidé par un prochain appel à setlocale.  On doit donc prendre une copie du texte.
 		for (auto&& nom_locale : locales)
-			if (setlocale(category, to_const_char(nom_locale)) != nullptr)
+			if (setlocale(category, to_const_char(nom_locale)) != nullptr) {
+				// if constexpr (std::is_same_v<const char*, std::decay_t<decltype(locales[0])>>)
+					// std::cout << "Locale: " << nom_locale << std::endl;
 				break;
+			}
 		return std::array<std::string, 1>{ancienStr};
 	}, locales_a_essayer);
 }
@@ -248,7 +251,7 @@ static std::span<const char*> locales_a_essayer() {
 		static const char* locales_utf8[] = { ".UTF-8", "C.UTF-8" }; return locales_utf8;
 	}
 	else {
-		static const char* locales_defaut[] = { "" }; return locales_defaut;
+		static const char* locales_defaut[] = { ".1252", "C.ISO-8859-1", "fr_CA.iso88591", "en_US.iso88591", "fr_CA", "en_US", "" }; return locales_defaut;
 	}
 }
 

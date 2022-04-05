@@ -1,8 +1,8 @@
-﻿#pragma once
+#pragma once
 /// Verification des fuites de mémoire.
 /// Utilise un unordered_map pour conserver toutes les allocations, ceci a évidemment un impact sur la vitesse d'exécution, donc on ne l'utilise normalement pas sur un code final mais plutôt durant la vérification d'un programme.
 /// \author Francois-R.Boyer@PolyMtl.ca
-/// \version 2021-01
+/// \version 2021-12-01
 /// \since   2020-04
 
 #include <unordered_map>
@@ -12,14 +12,14 @@
 
 namespace bibliotheque_cours {
 
-using MarqueurVerificationAllocation = size_t;
+using MarqueurVerificationAllocation = std::size_t;
 static constexpr MarqueurVerificationAllocation depuisDebutVerificationAllocation = 0;
 
 struct InfoBlocMemoire {
-	size_t taille;
+	std::size_t taille;
 	bool est_tableau;
 	const char* nom_fichier; int ligne_fichier;
-	size_t numero_allocation;
+	std::size_t numero_allocation;
 
 	bool a_numero_ligne() const;
 	bool est_depuis(MarqueurVerificationAllocation depuis) const;
@@ -36,7 +36,7 @@ public:
 	~SansVerifierAllocations() { if (!deja_actif) est_actif = false; }
 	bool etait_deja_actif() { return deja_actif; }
 
-	friend void activer_verification_allocation();
+	friend void activer_verification_allocation(bool avec_remise_a_zero);
 	friend void desactiver_verification_allocation();
 
 private:
@@ -52,7 +52,7 @@ private:
 const char* get_message_erreur_delete();
 void remise_a_zero_compteurs_allocation();
 void remise_a_zero_verification();
-void activer_verification_allocation();
+void activer_verification_allocation(bool avec_remise_a_zero = true);
 void desactiver_verification_allocation();
 void afficher_fuites();
 
@@ -77,7 +77,7 @@ public:
 	VerifierFuitesAllocations(bool doitActiver = true) {
 		static VerifierALaFin verifierALaFin;
 		if (doitActiver)
-			activer_verification_allocation();
+			activer_verification_allocation(false);
 	}
 	// On désactive à la fin du main, pour ne pas qu'un delete hors main donne une erreur comme quoi il n'a pas de new associé, mais on affiche les fuites seulement plus tard.
 	~VerifierFuitesAllocations() {
@@ -112,7 +112,7 @@ std::unordered_map<void*, InfoBlocMemoire>& get_blocs_alloues();
 // Utiliser get_blocs_alloues au lieu de la référence dans les opérateurs new/delete qui pourraient être appelés avant l'initialisation de cette variable.
 inline std::unordered_map<void*, InfoBlocMemoire>& blocs_alloues = get_blocs_alloues();
 extern SorteErreurDelete derniere_erreur_delete;
-extern size_t compteur_de_new, compteur_de_delete;
+extern std::size_t compteur_de_new, compteur_de_delete;
 extern bool desactive_terminate_sur_erreur_delete;
 
 }

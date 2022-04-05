@@ -1,7 +1,7 @@
 /// Verification des fuites de mémoire.
 /// Utilise un unordered_map pour conserver toutes les allocations, ceci a évidemment un impact sur la vitesse d'exécution, donc on ne l'utilise normalement pas sur un code final mais plutôt durant la vérification d'un programme.
 /// \author Francois-R.Boyer@PolyMtl.ca
-/// \version 2021-01
+/// \version 2021-09-16
 /// \since   2020-04
 
 #include "verification_allocation.hpp"
@@ -15,11 +15,13 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_map>
+#include <vector>
 #include <cassert>  // Peut-être utiliser gsl Expects à la place?
 #include <limits>
 #include <string>
 #include <cstring>
 #include <csignal>
+#include <type_traits>
 #include "gsl/span"
 using namespace gsl;
 using namespace std;
@@ -88,7 +90,7 @@ void remise_a_zero_verification() {
 	remise_a_zero_compteurs_allocation();
 }
 
-void activer_verification_allocation() { remise_a_zero_verification(); SansVerifierAllocations::est_actif = false; }
+void activer_verification_allocation(bool avec_remise_a_zero) { if (avec_remise_a_zero) remise_a_zero_verification(); SansVerifierAllocations::est_actif = false; }
 void desactiver_verification_allocation() { SansVerifierAllocations::est_actif = true; }
 
 void remplir_bloc_verification_corruption_a(void* ptr, size_t sz)
@@ -246,10 +248,10 @@ static void enlever_des_blocs_alloues(void* ptr, bool est_tableau) noexcept {
 		}
 
 		if (it->second.est_tableau != est_tableau)
-			return lancer_erreur_delete(est_tableau ? SorteErreurDelete::wrong_delete_array : SorteErreurDelete::wrong_delete_nonarray, it->second);
+			lancer_erreur_delete(est_tableau ? SorteErreurDelete::wrong_delete_array : SorteErreurDelete::wrong_delete_nonarray, it->second);
 		
 		if (!tester_verification_corruption_sur_allocation(ptr, it->second.taille))
-			return lancer_erreur_delete(SorteErreurDelete::corruption, it->second);
+			lancer_erreur_delete(SorteErreurDelete::corruption, it->second);
 		
 		memset(ptr, 0xCC, it->second.taille);  // Pour ne pas qu'on puisse relire les données désallouées.
 		get_blocs_alloues().erase(it);
@@ -305,12 +307,25 @@ ostream& operator<< (ostream& os, const InfoBlocMemoire& info) {
 	return os;
 }
 
+static auto get_blocs_alloues_tries(bool seulement_avec_numeros_ligne = false, MarqueurVerificationAllocation depuis = depuisDebutVerificationAllocation) {
+	SansVerifierAllocations sva;
+	auto& blocs = get_blocs_alloues();
+	vector<decay_t<decltype(blocs)>::value_type*> resultat;
+	resultat.reserve(blocs.size());
+	for (auto& p : get_blocs_alloues())
+		if (p.second.repond_aux_criteres(seulement_avec_numeros_ligne, depuis))
+			resultat.push_back(&p);
+	sort(resultat.begin(), resultat.end(), [](auto* a, auto* b) { return a->second.numero_allocation < b->second.numero_allocation; });
+	return resultat;
+}
+
 /// Si seulement_avec_numeros_ligne, affiche uniquement les blocs qui ont un numéro de ligne, donc qui ont été alloués avec le "new" spécial défini dans debogage_memoire.hpp .
 void dump_blocs_alloues(bool seulement_avec_numeros_ligne, MarqueurVerificationAllocation depuis) {
 	SansVerifierAllocations sva;
-	for (const auto& [ptr, info] : get_blocs_alloues())
-		if (info.repond_aux_criteres(seulement_avec_numeros_ligne, depuis))
-			cout << ptr << " " << info << endl;
+	for (auto* p : get_blocs_alloues_tries(seulement_avec_numeros_ligne, depuis)) {
+		const auto& [ptr, info] = *p;
+		cout << ptr << " " << info << endl;
+	}
 }
 
 void afficher_fuites() {
@@ -321,8 +336,8 @@ void afficher_fuites() {
 		dump_blocs_alloues();
 		cout << endl << "Pour arreter sur ces # allocations la prochaine execution, ajouter la variable globale suivante (si le programme fait toujours les memes allocations; attention que l'execution dans le debogueur vs sans debogueur peut changer les allocations):" << endl
 			<< "bibliotheque_cours::BreakpointSurAllocations breakpointSurAllocations = { ";
-		for (const auto& [ptr, info] : get_blocs_alloues())
-			cout << info.numero_allocation << "U, ";
+		for (auto* p : get_blocs_alloues_tries())
+			cout << p->second.numero_allocation << "U, ";
 		cout << "};" << endl;
 	}
 }
@@ -336,7 +351,9 @@ bool tester_tous_blocs_alloues() {
 // Fait comme un singleton, pour s'assurer qu'il existe pour les premiers new globaux avant le main.
 std::unordered_map<void*, InfoBlocMemoire>& get_blocs_alloues()
 {
-	static std::unordered_map<void*, InfoBlocMemoire> static_blocs_alloues;
+	static std::unordered_map<void*, InfoBlocMemoire> static_blocs_alloues = []() {
+		SansVerifierAllocations sva; return std::unordered_map<void*, InfoBlocMemoire>();
+	}();
 	#ifdef VERIFICATION_ALLOCATION_GLOBALE
 	static VerifierFuitesAllocations verifierFuitesAllocations(false);
 	#endif

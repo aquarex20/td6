@@ -1,10 +1,9 @@
 ﻿#pragma once
 
+#include <streambuf>
 #include <ostream>
 #include <utility>
-#include <ciso646>
 #include <string>
-#include <string_view>
 
 namespace bibliotheque_cours {
 
@@ -79,7 +78,7 @@ extern dbgstream cdbg;
 class InitConsole { public: InitConsole(); };
 static inline InitConsole _initConsole;  // Une instance pour l'initialiser.
 
-static constexpr bool executionEstUtf8 = sizeof("é") == 3 and "é"[0] == char(0xC3U) and "é"[1] == char(0xA9U);  //NOTE: Certaines version de gcc donnent l'erreur "error: converting to execution character set: Invalid argument" si ce fichier n'est pas en UTF-8 et qu'on tente d'avoir une encodage d'exécution en latin-1.
+static constexpr bool executionEstUtf8 = sizeof("é") == 3 && "é"[0] == char(0xC3U) && "é"[1] == char(0xA9U);  //NOTE: Certaines version de gcc donnent l'erreur "error: converting to execution character set: Invalid argument" si ce fichier n'est pas en UTF-8 et qu'on tente d'avoir une encodage d'exécution en latin-1.  Certaines version de clang échouent si on met "and" au lieu de "&&".
 
 void activerCouleursAnsi();
 

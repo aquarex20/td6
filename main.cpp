@@ -1,7 +1,22 @@
-﻿#include "Calc.hpp"
-#include "CalcWindow.hpp"
+﻿#pragma region "Bibliothèques"//{
 
-#include <QApplication>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <cctype>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <ctime>
+#include <gsl/span>
+#include <cppitertools/range.hpp>
+#include <cppitertools/enumerate.hpp>
+
+//#if __has_include("gtest/gtest.h")
+//#include "gtest/gtest.h"
+//#endif
 
 #if __has_include("bibliotheque_cours.hpp")
 #include "bibliotheque_cours.hpp"
@@ -23,18 +38,22 @@ void initialiserBibliothequeCours([[maybe_unused]] int argc, [[maybe_unused]] ch
 
 	// cdbg.setTee(&clog);  // Décommenter cette ligne pour que cdbg affiche sur la console en plus de la "Sortie" du débogueur.
 	
-	bibliotheque_cours::executerGoogleTest(argc, argv); // Attention de ne rien afficher avant cette ligne, sinon l'Explorateur de tests va tenter de lire votre affichage comme un résultat de test.
+	// bibliotheque_cours::executerGoogleTest(argc, argv); // Attention de ne rien afficher avant cette ligne, sinon l'Explorateur de tests va tenter de lire votre affichage comme un résultat de test.
 	#endif
-	//NOTE: C'est normal que la couverture de code dans l'Explorateur de tests de Visual Studio ne couvre pas la fin de cette fonction ni la fin du main après l'appel à cette fonction puisqu'il exécute uniquement les tests Google Test dans l'appel ci-dessus.
 }
 
-int main(int argc, char *argv[])
+using namespace std;
+using namespace std::literals;
+using namespace iter;
+using namespace gsl;
+
+#pragma endregion//}
+
+
+
+int main(int argc, char* argv[])
 {
-	bibliotheque_cours::VerifierFuitesAllocations verifierFuitesAllocations;
-	QApplication app(argc, argv);
 	initialiserBibliothequeCours(argc, argv);
 
-	CalcWindow calcWindow;
-	calcWindow.show();
-	return app.exec();
+
 }
